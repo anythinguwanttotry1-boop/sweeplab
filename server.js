@@ -263,7 +263,7 @@ async function fetchPair(pair) {
   const u = new URL("https://api.twelvedata.com/time_series");
   u.searchParams.set("symbol", PAIRS[pair]);
   u.searchParams.set("interval", "1min");
-  u.searchParams.set("outputsize", "1200");
+  u.searchParams.set("outputsize", "700");
   u.searchParams.set("timezone", "Asia/Muscat");
   u.searchParams.set("format", "JSON");
   u.searchParams.set("apikey", apiKey);
@@ -301,67 +301,81 @@ async function sendPush(payload) {
   subscriptions = keep;
 }
 
-async function scan() {
+const pairNames = Object.keys(PAIRS);
+let pairCursor = 0;
+let lastMarketRequestAt = 0;
+const MARKET_REQUEST_GAP_MS = 22000;
+
+async function updatePair(pair) {
+  try {
+    const data = await fetchPair(pair);
+    const result = analyze(pair, data);
+    state.pairs[pair] = result;
+
+    const signature = [
+      result.decision,
+      result.bias,
+      result.model,
+      result.asiaHigh,
+      result.asiaLow
+    ].join("|");
+
+    if (result.decision === "ENTER" && lastNotified[pair] !== signature) {
+      lastNotified[pair] = signature;
+      await sendPush({
+        title: pair + " · " + result.bias,
+        body: result.model + " · " + result.price,
+        tag: pair + "-" + signature,
+        url: "/"
+      });
+    }
+  } catch (e) {
+    state.pairs[pair] = {
+      pair,
+      decision: "WAIT",
+      progress: 0,
+      apiError: String(e.message || e),
+      reason: "Market-data error"
+    };
+  }
+
+  state.configured = true;
+  state.lastScan = Date.now();
+  state.error = null;
+  return state;
+}
+
+async function scanNext(force = false) {
   state.configured = !!apiKey;
+
   if (!apiKey) {
     state = {
       configured: false,
       lastScan: Date.now(),
       error: "API not configured",
-      pairs: {}
+      pairs: state.pairs || {}
     };
     return state;
   }
 
-  const results = {};
-  for (const pair of Object.keys(PAIRS)) {
-    try {
-      const data = await fetchPair(pair);
-      const result = analyze(pair, data);
-      results[pair] = result;
-
-      const signature = [
-        result.decision,
-        result.bias,
-        result.model,
-        result.asiaHigh,
-        result.asiaLow
-      ].join("|");
-
-      if (result.decision === "ENTER" && lastNotified[pair] !== signature) {
-        lastNotified[pair] = signature;
-        await sendPush({
-          title: pair + " · " + result.bias,
-          body: result.model + " · " + result.price,
-          tag: pair + "-" + signature,
-          url: "/"
-        });
-      }
-    } catch (e) {
-      results[pair] = {
-        pair,
-        decision: "WAIT",
-        progress: 0,
-        apiError: String(e.message || e),
-        reason: "Market-data error"
-      };
-    }
+  const now = Date.now();
+  if (!force && now - lastMarketRequestAt < MARKET_REQUEST_GAP_MS) {
+    return {
+      ...state,
+      throttled: true,
+      retryAfterMs: MARKET_REQUEST_GAP_MS - (now - lastMarketRequestAt)
+    };
   }
 
-  state = {
-    configured: true,
-    lastScan: Date.now(),
-    error: null,
-    pairs: results
-  };
-  return state;
+  lastMarketRequestAt = now;
+  const pair = pairNames[pairCursor % pairNames.length];
+  pairCursor = (pairCursor + 1) % pairNames.length;
+  return updatePair(pair);
 }
 
 setInterval(() => {
-  scan().catch(() => {});
-}, 60000);
-
-scan().catch(() => {});
+  scanNext().catch(() => {});
+}, MARKET_REQUEST_GAP_MS);
 
 function serveStatic(res, fileName, type) {
   const file = path.join(ROOT, fileName);
@@ -409,12 +423,14 @@ const server = http.createServer(async (req, res) => {
     const key = String(body.key || "").trim();
     if (key.length < 8) return sendJson(res, 400, { ok: false, error: "Invalid API key" });
     apiKey = key;
-    await scan();
+    pairCursor = 0;
+    lastMarketRequestAt = 0;
+    await scanNext(true);
     return sendJson(res, 200, { ok: true });
   }
 
   if (req.method === "POST" && u.pathname === "/api/scan") {
-    const result = await scan();
+    const result = await scanNext();
     return sendJson(res, 200, result);
   }
 
