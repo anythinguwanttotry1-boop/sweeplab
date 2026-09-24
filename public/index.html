@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07111f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SweepLab">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>SweepLab</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#07111f;color:#edf4ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .wrap{max-width:900px;margin:auto;padding:18px 16px 30px}.top{display:flex;align-items:center;justify-content:space-between;padding:8px 2px 18px}
+    .brand{font-size:25px;font-weight:900;letter-spacing:.2px}.pill{font-size:12px;padding:8px 12px;border-radius:999px;background:#0f2c23;color:#75e7b0}
+    .hero,.card,.api{background:#0c1728;border:1px solid #1d2c43;border-radius:20px}.hero{padding:20px;margin-bottom:14px}.hero h1{margin:0 0 8px;font-size:27px}
+    .muted{color:#8da1bc;line-height:1.65}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:15px}.btn{border:0;border-radius:13px;padding:13px 14px;background:#5f7cff;color:#fff;font-weight:800}.btn.alt{background:#17263d}
+    .api{display:none;padding:16px;margin-bottom:14px;background:#332616;border-color:#684a28}.api.show{display:block}.apirow{display:flex;gap:8px;margin-top:10px}.api input{min-width:0;flex:1;background:#0b1523;color:white;border:1px solid #44536b;border-radius:12px;padding:12px}
+    .grid{display:grid;gap:12px}.card{padding:16px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.pair{font-size:21px;font-weight:900}.decision{padding:7px 10px;border-radius:10px;font-size:13px;font-weight:900}
+    .ENTER{background:#113b2d;color:#6fe6a7}.WAIT{background:#3a3117;color:#ffd467}.SKIP{background:#273142;color:#c2ccda}.kv{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}.k{background:#091321;border-radius:13px;padding:10px}.lab{font-size:11px;color:#8093ae}.val{font-weight:800;margin-top:3px}
+    .checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}.chip{font-size:11px;padding:6px 8px;border-radius:9px;background:#142239;color:#91a3bc}.chip.ok{background:#10352a;color:#70e2a7}.bar{height:7px;background:#17263e;border-radius:999px;overflow:hidden;margin-top:12px}.bar i{display:block;height:100%;background:#5f7cff}.reason{margin-top:10px;color:#9eb0c8;font-size:13px}.err{color:#ff8b8b}
+    .install{margin-top:13px;background:#0e1c31;border-radius:14px;padding:11px;color:#a8bad1;font-size:12px;line-height:1.6}.foot{text-align:center;color:#6f829d;font-size:12px;padding:18px 0}
+    @media(max-width:620px){.actions{grid-template-columns:1fr}.hero h1{font-size:23px}.wrap{padding:14px}.kv{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand">SweepLab</div><div class="pill" id="online">ONLINE</div></div>
+
+  <div class="api" id="apiBox">
+    <div style="font-weight:900">أدخل Twelve Data API Key</div>
+    <div class="muted" style="font-size:12px">بعد الحفظ يبدأ السيرفر بسحب بيانات السوق الحقيقية.</div>
+    <div class="apirow"><input id="apiKey" type="password" placeholder="API Key"><button class="btn" onclick="saveKey()">حفظ</button></div>
+  </div>
+
+  <section class="hero">
+    <h1>مراقب استراتيجيتك للفوركس</h1>
+    <div class="muted">EURJPY · GBPCHF · EURCAD<br>جلسة آسيا 04:00–08:00 بتوقيت عُمان</div>
+    <div class="actions">
+      <button class="btn" onclick="scanNow()">تحليل الآن</button>
+      <button class="btn alt" onclick="enablePush()">تفعيل الإشعارات</button>
+      <button class="btn alt" onclick="testPush()">إشعار تجريبي</button>
+    </div>
+    <div class="install">على الآيفون افتح الموقع في Safari ثم Share → Add to Home Screen. بعدها افتح SweepLab من الأيقونة واضغط تفعيل الإشعارات.</div>
+  </section>
+
+  <div id="cards" class="grid"></div>
+  <div id="updated" class="foot">—</div>
+</div>
+<script>
+let cfg=null;
+const el=id=>document.getElementById(id);
+function fmt(n,pair){return Number.isFinite(n)?n.toFixed(pair.includes("JPY")?3:5):"—"}
+function chip(ok,label){return '<span class="chip '+(ok?'ok':'')+'">'+label+'</span>'}
+function card(p){
+  const ch=p.checks||{};
+  return '<div class="card"><div class="row"><div class="pair">'+p.pair+'</div><div class="decision '+p.decision+'">'+p.decision+'</div></div>'+
+  '<div class="kv"><div class="k"><div class="lab">الاتجاه</div><div class="val">'+(p.bias||"—")+'</div></div>'+
+  '<div class="k"><div class="lab">Model</div><div class="val">'+(p.model||"—")+'</div></div>'+
+  '<div class="k"><div class="lab">السعر</div><div class="val">'+fmt(p.price,p.pair)+'</div></div>'+
+  '<div class="k"><div class="lab">Asia H / L</div><div class="val">'+fmt(p.asiaHigh,p.pair)+' / '+fmt(p.asiaLow,p.pair)+'</div></div></div>'+
+  '<div class="checks">'+chip(ch.sweep,'Sweep')+chip(ch.displacement,'Displacement')+chip(ch.bos,'BoS')+chip(ch.retrace,'Fib 0.5–0.618')+chip(ch.confluence,'FVG')+'</div>'+
+  '<div class="bar"><i style="width:'+(p.progress||0)+'%"></i></div><div class="reason '+(p.apiError?'err':'')+'">'+(p.apiError||p.reason||'')+'</div></div>';
+}
+async function getConfig(){cfg=await fetch('/api/config').then(r=>r.json());el('apiBox').classList.toggle('show',!cfg.configured)}
+async function load(){
+  try{
+    const s=await fetch('/api/status').then(r=>r.json());
+    const vals=Object.values(s.pairs||{});
+    el('cards').innerHTML=vals.length?vals.map(card).join(''):'<div class="card">لا توجد بيانات بعد</div>';
+    el('updated').textContent=s.lastScan?'آخر تحديث: '+new Date(s.lastScan).toLocaleString('ar-OM'):'—';
+  }catch{el('online').textContent='OFFLINE';el('online').style.color='#ff8b8b'}
+}
+async function saveKey(){
+  const key=el('apiKey').value.trim();if(!key)return;
+  const j=await fetch('/api/key',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key})}).then(r=>r.json());
+  if(!j.ok){alert(j.error||'تعذر حفظ المفتاح');return}
+  el('apiKey').value='';await getConfig();await load();alert('تم حفظ الـ API وتشغيل التحليل');
+}
+async function scanNow(){await fetch('/api/scan',{method:'POST'});await load()}
+function u8(b64){const pad='='.repeat((4-b64.length%4)%4);const s=atob((b64+pad).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...s].map(c=>c.charCodeAt(0)))}
+async function enablePush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){alert('الإشعارات غير مدعومة هنا');return}
+  const perm=await Notification.requestPermission();if(perm!=='granted'){alert('لم يتم السماح بالإشعارات');return}
+  const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(cfg.vapidPublicKey)});
+  await fetch('/api/push/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(sub)});
+  alert('تم تفعيل الإشعارات');
+}
+async function testPush(){const j=await fetch('/api/push/test',{method:'POST'}).then(r=>r.json());alert(j.count?'تم إرسال الإشعار التجريبي':'فعّل الإشعارات أولاً')}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');
+(async()=>{await getConfig();await load();setInterval(load,60000)})();
+</script>
+</body>
+</html>
