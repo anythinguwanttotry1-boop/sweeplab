@@ -304,7 +304,24 @@ async function sendPush(payload) {
 const pairNames = Object.keys(PAIRS);
 let pairCursor = 0;
 let lastMarketRequestAt = 0;
-const MARKET_REQUEST_GAP_MS = 22000;
+const MARKET_REQUEST_GAP_MS = 50000;
+const MONITOR_START_HOUR = 8;
+const MONITOR_END_HOUR = 18;
+
+function muscatHour() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Muscat",
+    hour: "2-digit",
+    hour12: false
+  }).formatToParts(new Date());
+  const hour = Number(parts.find(p => p.type === "hour")?.value || 0);
+  return hour === 24 ? 0 : hour;
+}
+
+function monitoringActive() {
+  const hour = muscatHour();
+  return hour >= MONITOR_START_HOUR && hour < MONITOR_END_HOUR;
+}
 
 async function updatePair(pair) {
   try {
@@ -356,6 +373,14 @@ async function scanNext(force = false) {
       pairs: state.pairs || {}
     };
     return state;
+  }
+
+  if (!monitoringActive()) {
+    return {
+      ...state,
+      paused: true,
+      pauseReason: "Scanner pauses outside 08:00–18:00 Oman time to stay within the free daily API limit"
+    };
   }
 
   const now = Date.now();
