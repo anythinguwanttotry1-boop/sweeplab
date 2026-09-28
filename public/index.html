@@ -68,7 +68,11 @@ async function load(){
     const s=await fetch('/api/status').then(r=>r.json());
     const vals=Object.values(s.pairs||{});
     el('cards').innerHTML=vals.length?vals.map(card).join(''):'<div class="card">لا توجد بيانات بعد</div>';
-    el('updated').textContent=s.lastScan?'آخر تحديث: '+new Date(s.lastScan).toLocaleString('ar-OM'):'—';
+    if(s.paused){
+      el('updated').textContent=s.pauseReason||'المراقبة متوقفة حالياً';
+    }else{
+      el('updated').textContent=s.lastScan?'آخر تحديث: '+new Date(s.lastScan).toLocaleString('ar-OM'):'—';
+    }
   }catch{el('online').textContent='OFFLINE';el('online').style.color='#ff8b8b'}
 }
 async function saveKey(){
