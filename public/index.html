@@ -35,7 +35,7 @@
 
   <section class="hero">
     <h1>مراقب استراتيجيتك للفوركس</h1>
-    <div class="muted">EURJPY · GBPCHF · EURCAD<br>جلسة آسيا 04:00–08:00 بتوقيت عُمان</div>
+    <div class="muted">EURJPY · GBPCHF · EURCAD<br>جلسة آسيا 04:00–08:00 بتوقيت عُمان<br>المراقبة التلقائية 09:00–17:00</div>
     <div class="actions">
       <button class="btn" onclick="scanNow()">تحليل الآن</button>
       <button class="btn alt" onclick="enablePush()">تفعيل الإشعارات</button>
@@ -68,10 +68,12 @@ async function load(){
     const s=await fetch('/api/status').then(r=>r.json());
     const vals=Object.values(s.pairs||{});
     el('cards').innerHTML=vals.length?vals.map(card).join(''):'<div class="card">لا توجد بيانات بعد</div>';
+    const budget=s.apiBudget||{};
+    const budgetText=budget.localRequestsToday!=null?' · طلبات اليوم: '+budget.localRequestsToday+'/'+(budget.localDailyCap||500):'';
     if(s.paused){
-      el('updated').textContent=s.pauseReason||'المراقبة متوقفة حالياً';
+      el('updated').textContent=(s.pauseReason||'المراقبة متوقفة حالياً')+budgetText;
     }else{
-      el('updated').textContent=s.lastScan?'آخر تحديث: '+new Date(s.lastScan).toLocaleString('ar-OM'):'—';
+      el('updated').textContent=(s.lastScan?'آخر تحديث: '+new Date(s.lastScan).toLocaleString('ar-OM'):'—')+budgetText;
     }
   }catch{el('online').textContent='OFFLINE';el('online').style.color='#ff8b8b'}
 }
