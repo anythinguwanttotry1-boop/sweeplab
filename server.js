@@ -259,7 +259,31 @@ function analyze(pair, m1) {
   };
 }
 
+let providerCreditsUsed = null;
+let providerCreditsLeft = null;
+let localRequestCount = 0;
+let localRequestDayUTC = new Date().toISOString().slice(0, 10);
+let creditLockUntil = 0;
+const LOCAL_DAILY_REQUEST_CAP = 500;
+
+function resetLocalBudgetIfNeeded() {
+  const todayUTC = new Date().toISOString().slice(0, 10);
+  if (todayUTC !== localRequestDayUTC) {
+    localRequestDayUTC = todayUTC;
+    localRequestCount = 0;
+    creditLockUntil = 0;
+    providerCreditsUsed = null;
+    providerCreditsLeft = null;
+  }
+}
+
+function nextUtcMidnightMs() {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 5);
+}
+
 async function fetchPair(pair) {
+  resetLocalBudgetIfNeeded();
   const u = new URL("https://api.twelvedata.com/time_series");
   u.searchParams.set("symbol", PAIRS[pair]);
   u.searchParams.set("interval", "1min");
@@ -268,8 +292,21 @@ async function fetchPair(pair) {
   u.searchParams.set("format", "JSON");
   u.searchParams.set("apikey", apiKey);
 
+  localRequestCount += 1;
   const r = await fetch(u);
+  const usedHeader = r.headers.get("api-credits-used");
+  const leftHeader = r.headers.get("api-credits-left");
+  if (usedHeader != null && usedHeader !== "") providerCreditsUsed = Number(usedHeader);
+  if (leftHeader != null && leftHeader !== "") providerCreditsLeft = Number(leftHeader);
+
   const j = await r.json();
+
+  if (r.status === 429 || /run out of API credits|daily limit|current limit/i.test(String(j.message || ""))) {
+    creditLockUntil = nextUtcMidnightMs();
+  } else if (Number.isFinite(providerCreditsLeft) && providerCreditsLeft <= 25) {
+    creditLockUntil = nextUtcMidnightMs();
+  }
+
   if (!r.ok || j.status === "error" || !Array.isArray(j.values)) {
     throw new Error(j.message || ("Twelve Data HTTP " + r.status));
   }
@@ -305,8 +342,8 @@ const pairNames = Object.keys(PAIRS);
 let pairCursor = 0;
 let lastMarketRequestAt = 0;
 const MARKET_REQUEST_GAP_MS = 60000;
-const MONITOR_START_HOUR = 8;
-const MONITOR_END_HOUR = 18;
+const MONITOR_START_HOUR = 9;
+const MONITOR_END_HOUR = 17;
 
 function muscatHour() {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -321,6 +358,16 @@ function muscatHour() {
 function monitoringActive() {
   const hour = muscatHour();
   return hour >= MONITOR_START_HOUR && hour < MONITOR_END_HOUR;
+}
+
+function applyBudgetState() {
+  resetLocalBudgetIfNeeded();
+  state.apiBudget = {
+    localRequestsToday: localRequestCount,
+    localDailyCap: LOCAL_DAILY_REQUEST_CAP,
+    providerCreditsUsed,
+    providerCreditsLeft
+  };
 }
 
 async function updatePair(pair) {
@@ -359,6 +406,7 @@ async function updatePair(pair) {
   state.configured = true;
   state.lastScan = Date.now();
   state.error = null;
+  applyBudgetState();
   return state;
 }
 
@@ -375,6 +423,8 @@ async function scanNext(force = false) {
     return state;
   }
 
+  resetLocalBudgetIfNeeded();
+
   if (!monitoringActive()) {
     for (const pair of pairNames) {
       const current = state.pairs[pair];
@@ -382,12 +432,27 @@ async function scanNext(force = false) {
         state.pairs[pair] = {
           ...current,
           apiError: undefined,
-          reason: "المراقبة متوقفة الآن خارج 08:00–18:00 بتوقيت عُمان. سيعود التحليل تلقائياً."
+          reason: "المراقبة متوقفة الآن خارج 09:00–17:00 بتوقيت عُمان. سيعود التحليل تلقائياً."
         };
       }
     }
     state.paused = true;
-    state.pauseReason = "المراقبة متوقفة الآن خارج 08:00–18:00 بتوقيت عُمان لتوفير رصيد الـ API.";
+    state.pauseReason = "المراقبة متوقفة الآن خارج 09:00–17:00 بتوقيت عُمان لتوفير رصيد الـ API.";
+    applyBudgetState();
+    return state;
+  }
+
+  if (Date.now() < creditLockUntil) {
+    state.paused = true;
+    state.pauseReason = "تم إيقاف طلبات Twelve Data تلقائياً لحماية الحد اليومي. ستعود بعد تجدد الرصيد.";
+    applyBudgetState();
+    return state;
+  }
+
+  if (localRequestCount >= LOCAL_DAILY_REQUEST_CAP) {
+    state.paused = true;
+    state.pauseReason = "وصل SweepLab إلى الحد الآمن لطلبات اليوم. ستعود المراقبة بعد تجدد الرصيد.";
+    applyBudgetState();
     return state;
   }
 
@@ -446,6 +511,7 @@ const server = http.createServer(async (req, res) => {
       pairs: Object.keys(PAIRS),
       asia: ASIA_START + "-" + ASIA_END,
       timezone: "Asia/Muscat",
+      monitorWindow: "09:00-17:00",
       vapidPublicKey: VAPID_PUBLIC_KEY
     });
   }
