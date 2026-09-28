@@ -304,7 +304,7 @@ async function sendPush(payload) {
 const pairNames = Object.keys(PAIRS);
 let pairCursor = 0;
 let lastMarketRequestAt = 0;
-const MARKET_REQUEST_GAP_MS = 50000;
+const MARKET_REQUEST_GAP_MS = 60000;
 const MONITOR_START_HOUR = 8;
 const MONITOR_END_HOUR = 18;
 
@@ -376,12 +376,23 @@ async function scanNext(force = false) {
   }
 
   if (!monitoringActive()) {
-    return {
-      ...state,
-      paused: true,
-      pauseReason: "Scanner pauses outside 08:00–18:00 Oman time to stay within the free daily API limit"
-    };
+    for (const pair of pairNames) {
+      const current = state.pairs[pair];
+      if (current && current.apiError && /API credits|daily limit|current limit/i.test(current.apiError)) {
+        state.pairs[pair] = {
+          ...current,
+          apiError: undefined,
+          reason: "المراقبة متوقفة الآن خارج 08:00–18:00 بتوقيت عُمان. سيعود التحليل تلقائياً."
+        };
+      }
+    }
+    state.paused = true;
+    state.pauseReason = "المراقبة متوقفة الآن خارج 08:00–18:00 بتوقيت عُمان لتوفير رصيد الـ API.";
+    return state;
   }
+
+  state.paused = false;
+  state.pauseReason = null;
 
   const now = Date.now();
   if (!force && now - lastMarketRequestAt < MARKET_REQUEST_GAP_MS) {
