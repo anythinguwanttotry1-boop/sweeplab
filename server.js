@@ -413,11 +413,11 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, count: subscriptions.length });
     }
     if (req.method === 'POST' && u.pathname === '/api/push/test') {
-      if (Date.now() - lastTestPushAt < 30000) return sendJson(res, 429, { ok: false, error: 'Please wait before another test' });
-      lastTestPushAt = Date.now();
       const b = await readJson(req);
       const sub = subscriptions.find(s => s.endpoint === b.endpoint);
       if (!sub) return sendJson(res, 404, { ok: false, error: 'This device is not subscribed' });
+      if (Date.now() - lastTestPushAt < 30000) return sendJson(res, 429, { ok: false, error: 'Please wait before another test' });
+      lastTestPushAt = Date.now();
       const ok = await sendPushTo(sub, { title: 'SweepLab', body: 'الإشعارات شغالة حتى لو سكرت التطبيق', tag: 'test', url: '/' });
       return sendJson(res, ok ? 200 : 500, { ok });
     }
