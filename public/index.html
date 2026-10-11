@@ -154,13 +154,13 @@ async function load(){
     const pairs=(cfg&&cfg.pairs)||['EURJPY','GBPCHF','EURCAD'];
     const vals=pairs.map(pair=>{
       const existing=(s.pairs||{})[pair];
-      const win=(s.bestWindows||{})[pair] || (cfg&&cfg.bestWindows&&cfg.bestWindows[pair]);
+      const win=(s.bestWindows||{})[pair] || (cfg&&cfg.pairWindows&&cfg.pairWindows[pair]);
       if(existing){
         return {
           ...existing,
-          bestWindowOman:existing.bestWindowOman||(win&&win.oman),
+          bestWindowOman:existing.bestWindowOman||existing.bestTimeOman||(win&&win.oman),
           bestWindowLabel:existing.bestWindowLabel||(win&&win.label),
-          bestWindowActive:win?win.active:existing.bestWindowActive
+          bestWindowActive:win?win.active:existing.activeNow
         };
       }
       return fallbackPair(pair,win);
@@ -169,7 +169,7 @@ async function load(){
     el('cards').innerHTML=vals.map(card).join('');
 
     const b=s.apiBudget||{};
-    el('budget').textContent=(b.localRequestsToday??0)+' / '+(b.localDailyCap||360);
+    el('budget').textContent=(b.requestsToday??0)+' / '+(b.safeCap||450);
     el('lastScan').textContent=s.lastScan?new Date(s.lastScan).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'}):'—';
     el('monitorState').textContent=s.paused?(s.pauseReason||'متوقفة مؤقتاً'):'تعمل الآن';
   }catch(e){
@@ -233,13 +233,27 @@ async function enablePush(){
 }
 
 async function testPush(){
-  const r=await fetch('/api/push/test',{method:'POST'});
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){
+    alert('الإشعارات غير مدعومة في هذا المتصفح');
+    return;
+  }
+  const reg=await navigator.serviceWorker.ready;
+  const sub=await reg.pushManager.getSubscription();
+  if(!sub){
+    alert('فعّل الإشعارات أولاً');
+    return;
+  }
+  const r=await fetch('/api/push/test',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({endpoint:sub.endpoint})
+  });
   const j=await r.json();
   if(!r.ok){
     alert(j.error||'تعذر إرسال الاختبار');
     return;
   }
-  alert(j.sent?'تم إرسال الإشعار التجريبي':'فعّل الإشعارات أولاً');
+  alert(j.ok?'تم إرسال الإشعار التجريبي':'تعذر إرسال الإشعار');
 }
 
 if('serviceWorker' in navigator){
