@@ -160,7 +160,7 @@ async function load(){
           ...existing,
           bestWindowOman:existing.bestWindowOman||existing.bestTimeOman||(win&&win.oman),
           bestWindowLabel:existing.bestWindowLabel||(win&&win.label),
-          bestWindowActive:win?win.active:existing.activeNow
+          bestWindowActive:!!existing.activeNow
         };
       }
       return fallbackPair(pair,win);
