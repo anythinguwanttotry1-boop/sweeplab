@@ -223,10 +223,19 @@ function analyze(pair, m1) {
     if (disp15 && break15 && zone && retraceZone && bos && fvg5) { enter = true; model = 'Model 2 Continuation'; }
   }
 
+  const pip = pair.includes('JPY') ? 0.01 : 0.0001;
+  const buffer = pip * 2;
+  const entry = enter ? price : null;
+  const sl = enter ? (bias === 'BUY' ? lo - buffer : hi + buffer) : null;
+  const risk = enter ? Math.abs(entry - sl) : 0;
+  if (enter && (!Number.isFinite(risk) || risk <= 0 || (bias === 'BUY' ? sl >= entry : sl <= entry))) enter = false;
+  const tp = enter ? (bias === 'BUY' ? entry + risk * 3 : entry - risk * 3) : null;
+
   const checks = { sweep: true, displacement, bos, retrace, confluence };
   const score = Object.values(checks).filter(Boolean).length;
   return {
     pair, decision: enter ? 'ENTER' : 'WAIT', bias, model, price, asiaHigh, asiaLow,
+    ...(enter ? { entry, sl, tp, rr: '1:3' } : {}),
     progress: enter ? 100 : Math.round(score / 5 * 100), checks,
     reason: enter ? 'Setup complete' : 'Waiting for remaining conditions',
     note: 'Rule-based implementation of the strategy'
