@@ -99,10 +99,10 @@
     <div class="margin-help">انسخ مارجن 1.00 لوت من حاسبة FundedNext للزوج نفسه. SweepLab يطلع أكبر لوت يخلي استخدام المارجن أقل من 60% بعد خصم المارجن المستخدم حالياً.</div>
     <a class="margin-link" href="https://fundednext.com/calculator/margin-calculator" target="_blank" rel="noopener">افتح حاسبة FundedNext الرسمية</a>
     <div class="margin-inputs">
-      <div class="margin-input"><label for="marginBalance">Equity الحالي ($)</label><input id="marginBalance" type="number" min="1" step="0.01" value="15000" oninput="updateMarginCalc()"></div>
+      <div class="margin-input"><label for="marginBalance">الرصيد الحالي Balance ($)</label><input id="marginBalance" type="number" min="1" step="0.01" value="15000" oninput="updateMarginCalc()"></div>
       <div class="margin-input"><label for="marginUsed">المارجن المستخدم من MT5 ($)</label><input id="marginUsed" type="number" min="0" step="0.01" value="0" oninput="updateMarginCalc()"></div>
     </div>
-    <div class="margin-help" style="margin-top:8px">في حاسبة FundedNext اختر حساب One-Step، والزوج نفسه، وحجم 1.00 لوت، ثم أدخل قيمة Margin Required. الحاسبة لا تستهلك Twelve Data.</div>
+    <div class="margin-help" style="margin-top:8px">في حاسبة FundedNext اختر نموذج حسابك ومرحلته والزوج نفسه، ثم احسب مارجن 1.00 لوت وانسخ Margin Required. هذا لا يستهلك Twelve Data.</div>
     <div class="margin-results">
       <div class="margin-result"><div class="title">EURJPY</div><div class="margin-input"><label for="marginEURJPY">مارجن 1 لوت ($)</label><input id="marginEURJPY" type="number" min="0.01" step="0.01" placeholder="Margin Required" oninput="updateMarginCalc()"></div><div class="out lot">أقصى لوت أقل من 60%<b id="lotEURJPY">—</b></div><div class="out">الاستخدام بعد فتح الصفقة<b id="utilEURJPY">—</b></div></div>
       <div class="margin-result"><div class="title">GBPCHF</div><div class="margin-input"><label for="marginGBPCHF">مارجن 1 لوت ($)</label><input id="marginGBPCHF" type="number" min="0.01" step="0.01" placeholder="Margin Required" oninput="updateMarginCalc()"></div><div class="out lot">أقصى لوت أقل من 60%<b id="lotGBPCHF">—</b></div><div class="out">الاستخدام بعد فتح الصفقة<b id="utilGBPCHF">—</b></div></div>
@@ -143,7 +143,7 @@ function updateMarginCalc(){
   }
   const note=el('marginNote');
   if(balance>0&&used>=limit)note.textContent='المارجن الحالي وصل إلى حد 60%. لا تفتح صفقة جديدة ضمن هذا الحد.';
-  else note.textContent='الإعدادات تحفظ على هذا الجهاز. أدخل Equity والـMargin المستخدم من MT5. هذه الحاسبة تحد المارجن فقط ولا تحسب خسارة Stop Loss.';
+  else note.textContent='الإعدادات تحفظ على هذا الجهاز. أدخل Balance والـMargin المستخدم من MT5. هذه الحاسبة تحد المارجن فقط ولا تحسب خسارة Stop Loss.';
   try{
     const data={balance:balance,used:used,rates:{}};
     for(const pair of marginPairs)data.rates[pair]=Number(el('margin'+pair).value);
