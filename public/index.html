@@ -42,6 +42,8 @@
     .margin-result .title{grid-column:1/-1;font-weight:900}.margin-result .out{font-size:12px;color:var(--muted)}.margin-result .out b{display:block;color:var(--text);font-size:16px;margin-top:4px}
     .margin-result .out.lot b{color:var(--green)}
     .risk-result{margin-top:8px;padding:10px;border-radius:12px;background:#101f33;color:#b8c8dd;font-size:12px;line-height:1.65}.risk-result b{color:var(--green)}
+    .margin-input select{width:100%;background:#111f32;border:1px solid #253854;border-radius:9px;color:var(--text);padding:10px;direction:ltr}
+    .risk-result{margin-top:10px;padding:12px;border:1px solid #263b57;border-radius:14px;background:#0b1a2e;color:#b8c8dd;font-size:13px;line-height:1.7}.risk-result b{color:var(--green);font-size:16px}
     .metric{background:var(--panel2);border-radius:14px;padding:10px}.metric .lab{font-size:11px;color:#7d91ac}.metric .val{font-weight:850;margin-top:4px}
     .grid{display:grid;gap:12px}.card{padding:16px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -96,20 +98,19 @@
   </section>
 
   <section class="margin-panel">
-    <h2>حاسبة المارجن واللوت</h2>
-    <div class="margin-help">انسخ مارجن 1.00 لوت من حاسبة FundedNext للزوج نفسه. SweepLab يطلع أكبر لوت يخلي استخدام المارجن أقل من 60% بعد خصم المارجن المستخدم حالياً.</div>
-    <a class="margin-link" href="https://fundednext.com/calculator/margin-calculator" target="_blank" rel="noopener">افتح حاسبة FundedNext الرسمية</a>
+    <h2>حاسبة اللوت التلقائية</h2>
+    <div class="margin-help">اختر الزوج. إذا كانت الإشارة ENTER سيُملأ الدخول والـSL تلقائياً. يحسب اللوت على خسارة قصوى 140 دولار، ثم يحدّه إلى استخدام مارجن أقل من 60% على رافعة فوركس 1:100.</div>
+    <a class="margin-link" href="https://fundednext.com/calculator/lot-size-calculator" target="_blank" rel="noopener">حاسبة حجم اللوت الرسمية من FundedNext</a>
     <div class="margin-inputs">
-      <div class="margin-input"><label for="marginBalance">الرصيد الحالي Balance ($)</label><input id="marginBalance" type="number" min="1" step="0.01" value="15000" oninput="updateMarginCalc()"></div>
-      <div class="margin-input"><label for="marginUsed">المارجن المستخدم من MT5 ($)</label><input id="marginUsed" type="number" min="0" step="0.01" value="0" oninput="updateMarginCalc()"></div>
+      <div class="margin-input"><label for="lotPair">الزوج</label><select id="lotPair" onchange="syncLotInputs(true)"><option>EURJPY</option><option>GBPCHF</option><option>EURCAD</option></select></div>
+      <div class="margin-input"><label for="marginBalance">رصيد الحساب ($)</label><input id="marginBalance" type="number" min="1" step="0.01" value="15000" oninput="saveLotSettings()"></div>
+      <div class="margin-input"><label for="marginUsed">المرجن المستخدم حالياً من MT5 ($)</label><input id="marginUsed" type="number" min="0" step="0.01" value="0" oninput="saveLotSettings()"></div>
+      <div class="margin-input"><label for="lotEntry">سعر الدخول</label><input id="lotEntry" type="number" min="0.00001" step="any" placeholder="يُملأ من إشارة ENTER أو أدخله"></div>
+      <div class="margin-input"><label for="lotSL">سعر وقف الخسارة SL</label><input id="lotSL" type="number" min="0.00001" step="any" placeholder="يُملأ من إشارة ENTER أو أدخله"></div>
     </div>
-    <div class="margin-help" style="margin-top:8px">أدخل قيمة النقطة بالدولار للوت الواحد من مواصفات الرمز في MT5 لكل زوج. عند ظهور ENTER يحسب SweepLab اللوت بحيث لا تتجاوز خسارة SL مبلغ 140 دولار، ولا يتجاوز استخدام المارجن 60%. إعدادات الحساب لا تستهلك Twelve Data.</div>
-    <div class="margin-results">
-      <div class="margin-result"><div class="title">EURJPY</div><div class="margin-input"><label for="marginEURJPY">مارجن 1 لوت ($)</label><input id="marginEURJPY" type="number" min="0.01" step="0.01" placeholder="Margin Required" oninput="updateMarginCalc()"></div><div class="margin-input"><label for="pipValueEURJPY">قيمة النقطة بالدولار لكل 1 لوت</label><input id="pipValueEURJPY" type="number" min="0.0001" step="0.0001" placeholder="من MT5" oninput="updateMarginCalc()"></div><div class="out lot">حد اللوت بالمارجن<b id="lotEURJPY">—</b></div><div class="out">استخدام المارجن<b id="utilEURJPY">—</b></div></div>
-      <div class="margin-result"><div class="title">GBPCHF</div><div class="margin-input"><label for="marginGBPCHF">مارجن 1 لوت ($)</label><input id="marginGBPCHF" type="number" min="0.01" step="0.01" placeholder="Margin Required" oninput="updateMarginCalc()"></div><div class="margin-input"><label for="pipValueGBPCHF">قيمة النقطة بالدولار لكل 1 لوت</label><input id="pipValueGBPCHF" type="number" min="0.0001" step="0.0001" placeholder="من MT5" oninput="updateMarginCalc()"></div><div class="out lot">حد اللوت بالمارجن<b id="lotGBPCHF">—</b></div><div class="out">استخدام المارجن<b id="utilGBPCHF">—</b></div></div>
-      <div class="margin-result"><div class="title">EURCAD</div><div class="margin-input"><label for="marginEURCAD">مارجن 1 لوت ($)</label><input id="marginEURCAD" type="number" min="0.01" step="0.01" placeholder="Margin Required" oninput="updateMarginCalc()"></div><div class="margin-input"><label for="pipValueEURCAD">قيمة النقطة بالدولار لكل 1 لوت</label><input id="pipValueEURCAD" type="number" min="0.0001" step="0.0001" placeholder="من MT5" oninput="updateMarginCalc()"></div><div class="out lot">حد اللوت بالمارجن<b id="lotEURCAD">—</b></div><div class="out">استخدام المارجن<b id="utilEURCAD">—</b></div></div>
-    </div>
-    <div class="margin-help" id="marginNote" style="margin-top:10px">الحد الثابت للمخاطرة هو 140 دولار عند Stop Loss. قيمة النقطة بالدولار تؤخذ من مواصفات الرمز في MT5.</div>
+    <div class="actions" style="grid-template-columns:1fr"><button class="btn" id="lotCalcBtn" onclick="calculateLot()">احسب اللوت</button></div>
+    <div id="lotOutput" class="risk-result">اختر زوجاً، ثم استخدم أسعار ENTER أو أدخل الدخول والـSL واضغط احسب اللوت.</div>
+    <div class="margin-help" style="margin-top:8px">يستخدم SweepLab سعر تحويل واحداً محفوظاً لمدة 15 دقيقة. الطلب يُحسب ضمن الحد اليومي الآمن لـTwelve Data. تقدير الخسارة لا يشمل العمولة أو الانزلاق السعري.</div>
   </section>
   <div id="cards" class="grid"></div>
 
@@ -128,60 +129,45 @@ function fmt(n,pair){
   return Number.isFinite(x)?x.toFixed(pair.includes("JPY")?3:5):"—";
 }
 
-const marginPairs=['EURJPY','GBPCHF','EURCAD'];
-const MAX_RISK_USD=140;
-const LOT_STEP=0.01;
-function floorLots(value){return Math.max(0,Math.floor((value+1e-9)/LOT_STEP)*LOT_STEP);}
-function pipSize(pair){return pair.includes('JPY')?0.01:0.0001;}
-function riskLotCap(pair,entry,sl){
-  const pipValue=Number(el('pipValue'+pair).value);
-  const pips=Math.abs(Number(entry)-Number(sl))/pipSize(pair);
-  if(!(pipValue>0)||!(pips>0))return null;
-  return {pips,lot:floorLots(MAX_RISK_USD/(pips*pipValue)),riskPerLot:pips*pipValue};
+let latestPairs={};
+let lastAutoLotKey='';
+function saveLotSettings(){
+  try{localStorage.setItem('sweeplab-lot-settings',JSON.stringify({balance:Number(el('marginBalance').value),used:Number(el('marginUsed').value)}));}catch{}
 }
-function tradeLotPlan(pair,p){
-  if(!p||p.decision!=='ENTER'||!Number.isFinite(Number(p.entry))||!Number.isFinite(Number(p.sl)))return '';
-  const risk=riskLotCap(pair,p.entry,p.sl);
-  const perLot=Number(el('margin'+pair).value);
-  const balance=Number(el('marginBalance').value),used=Number(el('marginUsed').value),limit=balance*0.60;
-  let marginCap=null;
-  if(balance>0&&perLot>0){marginCap=floorLots(Math.max(0,(limit-used)/perLot));while(marginCap>0&&used+marginCap*perLot>=limit-1e-8)marginCap=Math.max(0,Math.round((marginCap-LOT_STEP)*100)/100);}
-  if(!risk)return '<div class="risk-result">أدخل قيمة النقطة بالدولار من مواصفات '+pair+' في MT5 لحساب اللوت حسب حد 140 دولار.</div>';
-  const finalLot=marginCap===null?risk.lot:Math.min(risk.lot,marginCap);
-  const expectedRisk=finalLot*risk.riskPerLot;
-  const marginText=marginCap===null?'أدخل مارجن 1 لوت لحساب حد 60%':`حد المارجن ${marginCap.toFixed(2)} لوت`;
-  return `<div class="risk-result">مسافة SL ${risk.pips.toFixed(1)} نقطة · حد المخاطرة ${risk.lot.toFixed(2)} لوت · ${marginText}<br><b>اللوت المقترح ${finalLot.toFixed(2)} · خسارة SL المقدرة ${expectedRisk.toFixed(2)}</b>${finalLot===0?'<br>لا يوجد لوت يطابق الحدين بالإعدادات الحالية.':''}<br>الحساب يعتمد على قيمة النقطة التي أدخلتها من MT5.</div>`;
+function restoreLotSettings(){
+  try{
+    const d=JSON.parse(localStorage.getItem('sweeplab-lot-settings')||'null');
+    if(d&&d.balance>0)el('marginBalance').value=d.balance;
+    if(d&&d.used>=0)el('marginUsed').value=d.used;
+  }catch{}
 }
-function updateMarginCalc(){
-  const balance=Number(el('marginBalance').value),used=Number(el('marginUsed').value),limit=balance*0.60;
-  for(const pair of marginPairs){
-    const perLot=Number(el('margin'+pair).value),lotOut=el('lot'+pair),utilOut=el('util'+pair);
-    if(!(balance>0)||!(perLot>0)||!Number.isFinite(used)){
-      lotOut.textContent='—';utilOut.textContent='—';continue;
-    }
-    const room=limit-used;
-    let lots=room>0?Math.floor((room/perLot)*100+1e-9)/100:0;
-    while(lots>0&&used+lots*perLot>=limit-1e-8)lots=Math.max(0,Math.round((lots-0.01)*100)/100);
-    lotOut.textContent=lots.toFixed(2);
-    utilOut.textContent=((used+lots*perLot)/balance*100).toFixed(2)+'%';
+function syncLotInputs(force=false){
+  const pair=el('lotPair').value,p=latestPairs[pair];
+  if(p&&p.decision==='ENTER'&&Number(p.entry)>0&&Number(p.sl)>0){
+    el('lotEntry').value=p.entry;el('lotSL').value=p.sl;
+    const key=[pair,p.entry,p.sl,el('marginBalance').value,el('marginUsed').value].join('|');
+    if(force||key!==lastAutoLotKey){lastAutoLotKey=key;calculateLot();}
+  }else if(force){
+    el('lotEntry').value='';el('lotSL').value='';
+    el('lotOutput').textContent='ما توجد إشارة ENTER حالياً لهذا الزوج. أدخل الدخول والـSL يدوياً لحساب اللوت.';
+    lastAutoLotKey='';
   }
-  const note=el('marginNote');
-  if(balance>0&&used>=limit)note.textContent='المارجن الحالي وصل إلى حد 60%. لا تفتح صفقة جديدة ضمن هذا الحد.';
-  else note.textContent='الإعدادات تحفظ على هذا الجهاز. أدخل Balance والـMargin المستخدم من MT5. هذه الحاسبة تحد المارجن فقط ولا تحسب خسارة Stop Loss.';
-  try{
-    const data={balance:balance,used:used,rates:{}};
-    for(const pair of marginPairs){data.rates[pair]=Number(el('margin'+pair).value);data['pip'+pair]=Number(el('pipValue'+pair).value);}
-    localStorage.setItem('sweeplab-margin-settings',JSON.stringify(data));
-  }catch{}
 }
-function restoreMarginCalc(){
+async function calculateLot(){
+  const pair=el('lotPair').value,entry=Number(el('lotEntry').value),sl=Number(el('lotSL').value);
+  const balance=Number(el('marginBalance').value),usedMargin=Number(el('marginUsed').value||0);
+  const out=el('lotOutput'),btn=el('lotCalcBtn');
+  if(!(entry>0)||!(sl>0)||entry===sl||!(balance>0)||usedMargin<0){
+    out.textContent='أدخل سعر الدخول والـSL والرصيد والمرجن المستخدم بشكل صحيح.';return;
+  }
+  btn.disabled=true;btn.textContent='جاري الحساب...';out.textContent='يحسب اللوت من سعر تحويل السوق...';
   try{
-    const data=JSON.parse(localStorage.getItem('sweeplab-margin-settings')||'null');
-    if(!data)return;
-    if(data.balance>0)el('marginBalance').value=data.balance;
-    if(data.used>=0)el('marginUsed').value=data.used;
-    for(const pair of marginPairs){if(data.rates&&data.rates[pair]>0)el('margin'+pair).value=data.rates[pair];if(data['pip'+pair]>0)el('pipValue'+pair).value=data['pip'+pair];}
-  }catch{}
+    const r=await fetch('/api/lot-size',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pair,entry,sl,balance,usedMargin})});
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.error||'تعذر حساب اللوت');
+    out.innerHTML='مسافة الوقف '+j.stopPips.toFixed(1)+' نقطة · حد اللوت حسب 140 دولار '+j.riskLots.toFixed(2)+'<br>حد اللوت حسب المارجن '+j.marginLots.toFixed(2)+' · مارجن 1 لوت $'+j.marginPerLot.toFixed(2)+'<br><b>اللوت النهائي '+j.lots.toFixed(2)+' · خسارة SL المقدرة $'+j.estimatedLossUsd.toFixed(2)+'</b><br>استخدام المارجن بعد الفتح '+j.marginUtilizationPct.toFixed(2)+'%';
+  }catch(e){out.textContent=e.message||'تعذر حساب اللوت';}
+  finally{btn.disabled=false;btn.textContent='احسب اللوت';}
 }
 function chip(ok,label){
   return '<span class="chip '+(ok?'ok':'')+'">'+label+'</span>';
@@ -243,6 +229,7 @@ async function load(){
     el('online').textContent='ONLINE';
     el('online').classList.remove('off');
 
+    latestPairs=s.pairs||{};
     const pairs=(cfg&&cfg.pairs)||['EURJPY','GBPCHF','EURCAD'];
     const vals=pairs.map(pair=>{
       const existing=(s.pairs||{})[pair];
@@ -259,6 +246,7 @@ async function load(){
     });
 
     el('cards').innerHTML=vals.map(card).join('');
+    syncLotInputs();
 
     const b=s.apiBudget||{};
     el('budget').textContent=(b.requestsToday??0)+' / '+(b.safeCap||450);
@@ -352,8 +340,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 
-restoreMarginCalc();
-updateMarginCalc();
+restoreLotSettings();
 
 (async()=>{
   await getConfig();
