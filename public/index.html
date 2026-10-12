@@ -30,6 +30,17 @@
     .notice{display:none;padding:14px 16px;margin-bottom:14px;background:#332616;border-color:#684a28;color:#ffcf8d}
     .notice.show{display:block}
     .summary{padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .margin-panel{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:16px;margin-bottom:14px}
+    .margin-panel h2{font-size:20px;margin:0 0 6px}.margin-help{font-size:12px;color:var(--muted);line-height:1.7}
+    .margin-link{display:inline-block;margin:8px 0;color:#aebcff;font-size:13px;font-weight:800}
+    .margin-inputs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+    .margin-input{background:var(--panel2);border-radius:13px;padding:10px}
+    .margin-input label{display:block;font-size:11px;color:#9aacc4;margin-bottom:6px}
+    .margin-input input{width:100%;min-width:0;background:#111f32;border:1px solid #253854;border-radius:9px;color:var(--text);padding:10px;direction:ltr;text-align:left}
+    .margin-results{display:grid;gap:8px;margin-top:12px}
+    .margin-result{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0b1a2e;border:1px solid #1d3049;border-radius:14px;padding:11px}
+    .margin-result .title{grid-column:1/-1;font-weight:900}.margin-result .out{font-size:12px;color:var(--muted)}.margin-result .out b{display:block;color:var(--text);font-size:16px;margin-top:4px}
+    .margin-result .out.lot b{color:var(--green)}
     .metric{background:var(--panel2);border-radius:14px;padding:10px}.metric .lab{font-size:11px;color:#7d91ac}.metric .val{font-weight:850;margin-top:4px}
     .grid{display:grid;gap:12px}.card{padding:16px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -83,6 +94,22 @@
     <div class="metric"><div class="lab">آخر تحديث</div><div class="val" id="lastScan">—</div></div>
   </section>
 
+  <section class="margin-panel">
+    <h2>حاسبة المارجن واللوت</h2>
+    <div class="margin-help">انسخ مارجن 1.00 لوت من حاسبة FundedNext للزوج نفسه. SweepLab يطلع أكبر لوت يخلي استخدام المارجن أقل من 60% بعد خصم المارجن المستخدم حالياً.</div>
+    <a class="margin-link" href="https://fundednext.com/calculator/margin-calculator" target="_blank" rel="noopener">افتح حاسبة FundedNext الرسمية</a>
+    <div class="margin-inputs">
+      <div class="margin-input"><label for="marginBalance">Equity الحالي ($)</label><input id="marginBalance" type="number" min="1" step="0.01" value="15000" oninput="updateMarginCalc()"></div>
+      <div class="margin-input"><label for="marginUsed">المارجن المستخدم من MT5 ($)</label><input id="marginUsed" type="number" min="0" step="0.01" value="0" oninput="updateMarginCalc()"></div>
+    </div>
+    <div class="margin-help" style="margin-top:8px">في حاسبة FundedNext اختر حساب One-Step، والزوج نفسه، وحجم 1.00 لوت، ثم أدخل قيمة Margin Required. الحاسبة لا تستهلك Twelve Data.</div>
+    <div class="margin-results">
+      <div class="margin-result"><div class="title">EURJPY</div><div class="margin-input"><label for="marginEURJPY">مارجن 1 لوت ($)</label><input id="marginEURJPY" type="number" min="0.01" step="0.01" placeholder="Margin Required" oninput="updateMarginCalc()"></div><div class="out lot">أقصى لوت أقل من 60%<b id="lotEURJPY">—</b></div><div class="out">الاستخدام بعد فتح الصفقة<b id="utilEURJPY">—</b></div></div>
+      <div class="margin-result"><div class="title">GBPCHF</div><div class="margin-input"><label for="marginGBPCHF">مارجن 1 لوت ($)</label><input id="marginGBPCHF" type="number" min="0.01" step="0.01" placeholder="Margin Required" oninput="updateMarginCalc()"></div><div class="out lot">أقصى لوت أقل من 60%<b id="lotGBPCHF">—</b></div><div class="out">الاستخدام بعد فتح الصفقة<b id="utilGBPCHF">—</b></div></div>
+      <div class="margin-result"><div class="title">EURCAD</div><div class="margin-input"><label for="marginEURCAD">مارجن 1 لوت ($)</label><input id="marginEURCAD" type="number" min="0.01" step="0.01" placeholder="Margin Required" oninput="updateMarginCalc()"></div><div class="out lot">أقصى لوت أقل من 60%<b id="lotEURCAD">—</b></div><div class="out">الاستخدام بعد فتح الصفقة<b id="utilEURCAD">—</b></div></div>
+    </div>
+    <div class="margin-help" id="marginNote" style="margin-top:10px">الإعدادات تحفظ على الجهاز. هذا حد مارجن فقط ولا يحدد المخاطرة عند Stop Loss.</div>
+  </section>
   <div id="cards" class="grid"></div>
 
   <div class="foot">
@@ -100,6 +127,38 @@ function fmt(n,pair){
   return Number.isFinite(x)?x.toFixed(pair.includes("JPY")?3:5):"—";
 }
 
+const marginPairs=['EURJPY','GBPCHF','EURCAD'];
+function updateMarginCalc(){
+  const balance=Number(el('marginBalance').value),used=Number(el('marginUsed').value),limit=balance*0.60;
+  for(const pair of marginPairs){
+    const perLot=Number(el('margin'+pair).value),lotOut=el('lot'+pair),utilOut=el('util'+pair);
+    if(!(balance>0)||!(perLot>0)||!Number.isFinite(used)){
+      lotOut.textContent='—';utilOut.textContent='—';continue;
+    }
+    const room=limit-used;
+    let lots=room>0?Math.floor((room/perLot)*100+1e-9)/100:0;
+    while(lots>0&&used+lots*perLot>=limit-1e-8)lots=Math.max(0,Math.round((lots-0.01)*100)/100);
+    lotOut.textContent=lots.toFixed(2);
+    utilOut.textContent=((used+lots*perLot)/balance*100).toFixed(2)+'%';
+  }
+  const note=el('marginNote');
+  if(balance>0&&used>=limit)note.textContent='المارجن الحالي وصل إلى حد 60%. لا تفتح صفقة جديدة ضمن هذا الحد.';
+  else note.textContent='الإعدادات تحفظ على هذا الجهاز. أدخل Equity والـMargin المستخدم من MT5. هذه الحاسبة تحد المارجن فقط ولا تحسب خسارة Stop Loss.';
+  try{
+    const data={balance:balance,used:used,rates:{}};
+    for(const pair of marginPairs)data.rates[pair]=Number(el('margin'+pair).value);
+    localStorage.setItem('sweeplab-margin-settings',JSON.stringify(data));
+  }catch{}
+}
+function restoreMarginCalc(){
+  try{
+    const data=JSON.parse(localStorage.getItem('sweeplab-margin-settings')||'null');
+    if(!data)return;
+    if(data.balance>0)el('marginBalance').value=data.balance;
+    if(data.used>=0)el('marginUsed').value=data.used;
+    for(const pair of marginPairs)if(data.rates&&data.rates[pair]>0)el('margin'+pair).value=data.rates[pair];
+  }catch{}
+}
 function chip(ok,label){
   return '<span class="chip '+(ok?'ok':'')+'">'+label+'</span>';
 }
@@ -268,6 +327,9 @@ async function testPush(){
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
+
+restoreMarginCalc();
+updateMarginCalc();
 
 (async()=>{
   await getConfig();
