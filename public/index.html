@@ -38,6 +38,8 @@
     .window{margin-top:11px;padding:10px 11px;border-radius:13px;background:#0b1a2e;display:flex;justify-content:space-between;gap:10px;align-items:center}
     .window.active{background:#0e3026;border:1px solid #1b5b46}.window .wlabel{font-size:12px;color:#9fb1c9}.window .wtime{font-weight:900}.livebadge{font-size:10px;padding:5px 7px;border-radius:999px;background:#14543d;color:#78e7b0;font-weight:900}
     .kv{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}.k{background:var(--panel2);border-radius:14px;padding:10px}.lab{font-size:11px;color:#7f93ae}.val{font-weight:850;margin-top:4px}
+    .trade-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;padding:10px;border:1px solid #236149;border-radius:14px;background:#0b211c}
+    .trade-levels .val{direction:ltr;text-align:right;color:#dcffec}.trade-levels .lab{color:#9bc8b2}.rr-note{grid-column:1/-1;color:#9bc8b2;font-size:11px;line-height:1.5}
     .checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}.chip{font-size:11px;padding:6px 8px;border-radius:9px;background:#142239;color:#91a3bc}.chip.ok{background:#10352a;color:#70e2a7}
     .bar{height:7px;background:#17263e;border-radius:999px;overflow:hidden;margin-top:12px}.bar i{display:block;height:100%;background:var(--blue)}
     .reason{margin-top:10px;color:#9eb0c8;font-size:13px;line-height:1.55}.err{color:var(--red)}
@@ -117,6 +119,13 @@ function card(p){
       '<div class="k"><div class="lab">السعر</div><div class="val">'+fmt(p.price,p.pair)+'</div></div>'+
       '<div class="k"><div class="lab">Asia H / L</div><div class="val">'+fmt(p.asiaHigh,p.pair)+' / '+fmt(p.asiaLow,p.pair)+'</div></div>'+
     '</div>'+
+    (p.decision==='ENTER'&&Number.isFinite(Number(p.entry))&&Number.isFinite(Number(p.sl))&&Number.isFinite(Number(p.tp))?
+      '<div class="trade-levels">'+
+        '<div><div class="lab">الدخول</div><div class="val">'+fmt(p.entry,p.pair)+'</div></div>'+
+        '<div><div class="lab">وقف الخسارة</div><div class="val">'+fmt(p.sl,p.pair)+'</div></div>'+
+        '<div><div class="lab">جني الربح</div><div class="val">'+fmt(p.tp,p.pair)+'</div></div>'+
+        '<div class="rr-note">نسبة العائد إلى المخاطرة 1:3 · الوقف خلف أقصى ذيل بعد السويب بهامش 2 pip. مستويات تقديرية وليست ضماناً.</div>'+
+      '</div>':'')+
     '<div class="checks">'+
       chip(ch.sweep,'Sweep')+
       chip(ch.displacement,'Displacement')+
