@@ -38,6 +38,7 @@ let subscriptions = Array.isArray(runtime.subscriptions) ? runtime.subscriptions
 let lastNotified = runtime.lastNotified || {};
 let lastFetchAt = runtime.lastFetchAt || {};
 let budget = runtime.budget || {};
+let fxCache = runtime.fxCache || {};
 let state = runtime.state || { configured: !!apiKey, lastScan: null, error: null, pairs: {} };
 let lastTestPushAt = 0;
 
@@ -51,7 +52,7 @@ function persist() {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     const tmp = DATA_FILE + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify({ subscriptions, lastNotified, lastFetchAt, budget, state }));
+    fs.writeFileSync(tmp, JSON.stringify({ subscriptions, lastNotified, lastFetchAt, budget, state, fxCache }));
     fs.renameSync(tmp, DATA_FILE);
   } catch {}
 }
@@ -282,6 +283,34 @@ async function fetchPair(pair) {
   return j.values.map(v => ({ dt: v.datetime, o: +v.open, h: +v.high, l: +v.low, c: +v.close })).sort((a, b) => a.dt.localeCompare(b.dt));
 }
 
+async function usdPerQuoteCurrency(currency) {
+  const cached = fxCache[currency];
+  if (cached && Number.isFinite(cached.usdPerUnit) && Date.now() - cached.at < 15 * 60 * 1000) return cached.usdPerUnit;
+  resetBudgetIfNeeded();
+  if (budget.requests >= SAFE_DAILY_REQUEST_CAP) throw new Error('تم الوصول إلى حد Twelve Data الآمن اليومي.');
+  if (Date.now() < (budget.lockUntil || 0)) throw new Error('طلبات Twelve Data متوقفة مؤقتاً لحماية الرصيد.');
+  const u = new URL('https://api.twelvedata.com/price');
+  u.searchParams.set('symbol', 'USD/' + currency);
+  u.searchParams.set('apikey', apiKey);
+  budget.requests += 1;
+  persist();
+  const r = await fetch(u);
+  parseCreditHeaders(r);
+  const j = await r.json();
+  if (!r.ok || j.status === 'error' || !Number.isFinite(Number(j.price)) || Number(j.price) <= 0) {
+    applyProviderLimit(j.message, r.status);
+    persist();
+    throw new Error(j.message || 'تعذر جلب سعر تحويل العملة.');
+  }
+  const usdPerUnit = 1 / Number(j.price);
+  fxCache[currency] = { usdPerUnit, at: Date.now(), usdQuotePrice: Number(j.price) };
+  persist();
+  return usdPerUnit;
+}
+function floorLot(value) {
+  return Math.max(0, Math.floor((value + 1e-9) * 100) / 100);
+}
+
 async function sendPushTo(sub, payload) {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return false;
   try {
@@ -403,6 +432,36 @@ const server = http.createServer(async (req, res) => {
       try { fs.writeFileSync(KEY_FILE, key, { mode: 0o600 }); } catch {}
       refreshMeta(); persist();
       return sendJson(res, 200, { ok: true });
+    }
+    if (req.method === 'POST' && u.pathname === '/api/lot-size') {
+      if (!apiKey) return sendJson(res, 503, { error: 'مصدر أسعار التحويل غير مضبوط في السيرفر.' });
+      const b = await readJson(req);
+      const pair = String(b.pair || '').toUpperCase();
+      const spec = { EURJPY: { quote: 'JPY', pip: 0.01 }, GBPCHF: { quote: 'CHF', pip: 0.0001 }, EURCAD: { quote: 'CAD', pip: 0.0001 } }[pair];
+      const entry = Number(b.entry), sl = Number(b.sl), balance = Number(b.balance), usedMargin = Number(b.usedMargin || 0);
+      if (!spec || !(entry > 0) || !(sl > 0) || entry === sl || !(balance > 0) || usedMargin < 0) {
+        return sendJson(res, 400, { error: 'أدخل الزوج وسعر الدخول والـSL والرصيد والمرجن المستخدم بشكل صحيح.' });
+      }
+      const usdPerQuote = await usdPerQuoteCurrency(spec.quote);
+      const stopPips = Math.abs(entry - sl) / spec.pip;
+      const pipValueUsd = (spec.pip * 100000) * usdPerQuote;
+      const riskPerLot = stopPips * pipValueUsd;
+      const riskLots = floorLot(140 / riskPerLot);
+      const marginPerLot = (100000 * entry * usdPerQuote) / 100;
+      const limit = balance * 0.60;
+      let marginLots = floorLot(Math.max(0, (limit - usedMargin) / marginPerLot));
+      while (marginLots > 0 && usedMargin + marginLots * marginPerLot >= limit - 1e-8) {
+        marginLots = Math.max(0, Math.round((marginLots - 0.01) * 100) / 100);
+      }
+      const lots = Math.min(riskLots, marginLots);
+      return sendJson(res, 200, {
+        pair, entry, sl, stopPips, pipValueUsd, riskPerLot,
+        maxRiskUsd: 140, riskLots, marginPerLot, marginLots, lots,
+        estimatedLossUsd: lots * riskPerLot,
+        marginUsedAfter: usedMargin + lots * marginPerLot,
+        marginUtilizationPct: ((usedMargin + lots * marginPerLot) / balance) * 100,
+        leverage: '1:100', fxQuote: spec.quote, fxRate: usdPerQuote
+      });
     }
     if (req.method === 'POST' && u.pathname === '/api/scan') {
       await schedulerTick();
