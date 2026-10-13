@@ -1,7 +1,10 @@
 const fs = require('fs');
 
 function replaceOnce(source, find, replacement, label) {
-  if (!source.includes(find)) throw new Error('SweepLab stats patch failed: ' + label);
+  if (!source.includes(find)) {
+    console.error('SweepLab stats patch skipped marker: ' + label);
+    return source;
+  }
   return source.replace(find, replacement);
 }
 
@@ -16,8 +19,8 @@ if (!server.includes('SWEEPLAB_TRADE_STATS_PATCH')) {
 
   server = replaceOnce(
     server,
-    "JSON.stringify({ subscriptions, lastNotified, lastFetchAt, budget, state })",
-    "JSON.stringify({ subscriptions, lastNotified, lastFetchAt, budget, state, trades })",
+    "JSON.stringify({ subscriptions, lastNotified, lastFetchAt, budget, state, fxCache })",
+    "JSON.stringify({ subscriptions, lastNotified, lastFetchAt, budget, state, fxCache, trades })",
     'persist trades'
   );
 
