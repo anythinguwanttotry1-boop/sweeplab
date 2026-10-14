@@ -41,10 +41,11 @@
     .margin-result{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0b1a2e;border:1px solid #1d3049;border-radius:14px;padding:11px}
     .margin-result .title{grid-column:1/-1;font-weight:900}.margin-result .out{font-size:12px;color:var(--muted)}.margin-result .out b{display:block;color:var(--text);font-size:16px;margin-top:4px}
     .margin-result .out.lot b{color:var(--green)}
-    .risk-result{margin-top:8px;padding:10px;border-radius:12px;background:#101f33;color:#b8c8dd;font-size:12px;line-height:1.65}.risk-result b{color:var(--green)}
-    .margin-input select{width:100%;background:#111f32;border:1px solid #253854;border-radius:9px;color:var(--text);padding:10px;direction:ltr}
     .risk-result{margin-top:10px;padding:12px;border:1px solid #263b57;border-radius:14px;background:#0b1a2e;color:#b8c8dd;font-size:13px;line-height:1.7}.risk-result b{color:var(--green);font-size:16px}
+    .margin-input select{width:100%;background:#111f32;border:1px solid #253854;border-radius:9px;color:var(--text);padding:10px;direction:ltr}
     .metric{background:var(--panel2);border-radius:14px;padding:10px}.metric .lab{font-size:11px;color:#7d91ac}.metric .val{font-weight:850;margin-top:4px}
+    .performance{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:16px;margin-bottom:14px}
+    .performance h2{margin:0 0 12px;font-size:20px}.perf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.perf-item{background:var(--panel2);border-radius:14px;padding:10px;text-align:center}.perf-item .n{font-size:22px;font-weight:950;margin-top:4px}.perf-item.win .n{color:var(--green)}.perf-item.loss .n{color:var(--red)}.perf-item.net.positive .n{color:var(--green)}.perf-item.net.negative .n{color:var(--red)}.history{margin-top:12px;display:grid;gap:7px}.trade-row{background:#0b1a2e;border-radius:12px;padding:9px 10px;display:grid;grid-template-columns:1.1fr .8fr .8fr 1fr;gap:7px;align-items:center;font-size:12px}.trade-row .WIN{color:var(--green)}.trade-row .LOSS{color:var(--red)}.trade-row .OPEN{color:var(--yellow)}.trade-row .AMBIGUOUS{color:#b9c4d4}
     .grid{display:grid;gap:12px}.card{padding:16px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
     .pair{font-size:22px;font-weight:950}.decision{padding:7px 11px;border-radius:10px;font-size:13px;font-weight:950}
@@ -59,36 +60,25 @@
     .reason{margin-top:10px;color:#9eb0c8;font-size:13px;line-height:1.55}.err{color:var(--red)}
     .foot{text-align:center;color:#71849f;font-size:12px;line-height:1.7;padding:18px 0 28px}
     .source{margin-top:8px;font-size:11px;color:#61758f}
-    @media(max-width:620px){
-      .wrap{padding:14px}.hero h1{font-size:23px}.actions{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}.summary .metric:last-child{grid-column:1/-1}.kv{grid-template-columns:1fr 1fr}.brand{font-size:25px}
-    }
+    @media(max-width:620px){.wrap{padding:14px}.hero h1{font-size:23px}.actions{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}.summary .metric:last-child{grid-column:1/-1}.kv{grid-template-columns:1fr 1fr}.brand{font-size:25px}.perf-grid{grid-template-columns:repeat(2,1fr)}.trade-row{grid-template-columns:1fr 1fr}}
+    /* SWEEPLAB_PERFORMANCE_UI */
   </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top">
-    <div class="brand">SweepLab</div>
-    <div class="status" id="online">ONLINE</div>
-  </div>
+  <div class="top"><div class="brand">SweepLab</div><div class="status" id="online">ONLINE</div></div>
 
-  <div class="notice" id="apiNotice">
-    الـ API غير مضاف في Railway. أضف المتغير TWELVE_DATA_API_KEY داخل SweepLab-Final ثم أعد النشر.
-  </div>
+  <div class="notice" id="apiNotice">الـ API غير مضاف في Railway. أضف المتغير TWELVE_DATA_API_KEY داخل SweepLab-Stable ثم أعد النشر.</div>
 
   <section class="hero">
     <h1>مراقب استراتيجيتك للفوركس</h1>
-    <div class="muted">
-      EURJPY · GBPCHF · EURCAD<br>
-      جلسة آسيا المستخدمة في الاستراتيجية: 04:00–08:00 بتوقيت عُمان
-    </div>
+    <div class="muted">EURJPY · GBPCHF · EURCAD<br>جلسة آسيا المستخدمة في الاستراتيجية: 04:00–08:00 بتوقيت عُمان</div>
     <div class="actions">
       <button class="btn" id="scanBtn" onclick="scanNow()">تحديث التحليل</button>
       <button class="btn alt" onclick="enablePush()">تفعيل الإشعارات</button>
       <button class="btn alt" onclick="testPush()">إشعار تجريبي</button>
     </div>
-    <div class="install">
-      للآيفون: افتح الرابط في Safari ثم Share → Add to Home Screen. افتح SweepLab من الأيقونة وبعدها فعّل الإشعارات. السيرفر يراقب السوق حتى لو أغلقت التطبيق.
-    </div>
+    <div class="install">للآيفون: افتح الرابط في Safari ثم Share → Add to Home Screen. افتح SweepLab من الأيقونة وبعدها فعّل الإشعارات. السيرفر يراقب السوق حتى لو أغلقت التطبيق.</div>
   </section>
 
   <section class="summary">
@@ -97,39 +87,57 @@
     <div class="metric"><div class="lab">آخر تحديث</div><div class="val" id="lastScan">—</div></div>
   </section>
 
+  <section class="performance">
+    <h2>أداء إشارات SweepLab</h2>
+    <div class="perf-grid">
+      <div class="perf-item"><div class="lab">الإشارات المرسلة</div><div class="n" id="statSent">0</div></div>
+      <div class="perf-item win"><div class="lab">ربح</div><div class="n" id="statWins">0</div></div>
+      <div class="perf-item loss"><div class="lab">خسارة</div><div class="n" id="statLosses">0</div></div>
+      <div class="perf-item"><div class="lab">مفتوحة</div><div class="n" id="statOpen">0</div></div>
+      <div class="perf-item"><div class="lab">Win Rate</div><div class="n" id="statRate">—</div></div>
+      <div class="perf-item win"><div class="lab">إجمالي الربح</div><div class="n" id="statProfit">$0</div></div>
+      <div class="perf-item loss"><div class="lab">إجمالي الخسارة</div><div class="n" id="statLossUsd">$0</div></div>
+      <div class="perf-item net" id="statNetBox"><div class="lab">الصافي</div><div class="n" id="statNet">$0</div></div>
+    </div>
+    <div id="tradeHistory" class="history"></div>
+    <div class="margin-help" style="margin-top:10px">الحساب المالي يفترض مخاطرة 140$ لكل صفقة وRR = 1:3: الربح الكامل = +420$ والخسارة الكاملة = -140$. المبلغ الفعلي في حساب MT5 قد يختلف قليلاً حسب اللوت والانزلاق والتنفيذ.</div>
+  </section>
+
   <!-- MAX_RISK_USD=140 -->
   <section class="margin-panel">
     <h2>حاسبة اللوت التلقائية</h2>
     <div class="margin-help">اختر الزوج فقط. عند ظهور ENTER يأخذ SweepLab سعر الدخول ووقف الخسارة من الإشارة، ثم يحسب اللوت بحيث لا تتجاوز خسارة الوقف 140 دولاراً واستخدام المارجن 60%.</div>
     <a class="margin-link" href="https://fundednext.com/calculator/lot-size-calculator" target="_blank" rel="noopener">حاسبة حجم اللوت الرسمية من FundedNext</a>
-    <div class="margin-inputs">
-      <div class="margin-input"><label for="lotPair">الزوج</label><select id="lotPair" onchange="syncLotInputs(true)"><option>EURJPY</option><option>GBPCHF</option><option>EURCAD</option></select></div>
-    </div>
+    <div class="margin-inputs"><div class="margin-input"><label for="lotPair">الزوج</label><select id="lotPair" onchange="syncLotInputs(true)"><option>EURJPY</option><option>GBPCHF</option><option>EURCAD</option></select></div></div>
     <div id="lotOutput" class="risk-result">اختر الزوج. ينتظر SweepLab إشارة ENTER ليحسب اللوت تلقائياً.</div>
     <div class="margin-help" style="margin-top:8px">الحساب على رصيد 15,000 دولار ورافعة 1:100، بافتراض عدم وجود مارجن مستخدم من صفقات مفتوحة. يستخدم سعر تحويل محفوظاً 15 دقيقة ضمن حد Twelve Data. تقدير الخسارة لا يشمل العمولة أو الانزلاق.</div>
   </section>
-  <div id="cards" class="grid"></div>
 
-  <div class="foot">
-    الإشارات ناتجة عن قواعد آلية مبنية على استراتيجيتك وليست ضماناً لنتيجة الصفقة.
-    <div class="source">Data provided by Twelve Data</div>
-  </div>
+  <div id="cards" class="grid"></div>
+  <div class="foot">الإشارات ناتجة عن قواعد آلية مبنية على استراتيجيتك وليست ضماناً لنتيجة الصفقة.<div class="source">Data provided by Twelve Data</div></div>
 </div>
 
 <script>
 let cfg=null;
 const el=id=>document.getElementById(id);
 
-function fmt(n,pair){
-  const x=Number(n);
-  return Number.isFinite(x)?x.toFixed(pair.includes("JPY")?3:5):"—";
-}
+async function fetchWithTimeout(url,opts={},timeoutMs=10000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+    const r=await fetch(url,{...opts,cache:'no-store',signal:controller.signal});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r;
+  }finally{clearTimeout(timer)}
+} // SWEEPLAB_STABILITY_PATCH
 
+function fmt(n,pair){const x=Number(n);return Number.isFinite(x)?x.toFixed(pair.includes('JPY')?3:5):'—';}
 let latestPairs={};
 let lastAutoLotKey='';
+
 function syncLotInputs(force=false){
   const pair=el('lotPair').value,p=latestPairs[pair];
-  if(p&&p.decision==='ENTER'&&Number(p.entry)>0&&Number(p.sl)>0){
+  if(p&&(p.decision==='ENTER'||p.heldSignal)&&Number(p.entry)>0&&Number(p.sl)>0){
     const key=[pair,p.entry,p.sl].join('|');
     if(force||key!==lastAutoLotKey){lastAutoLotKey=key;calculateLot(p);}
   }else if(force||lastAutoLotKey){
@@ -137,105 +145,94 @@ function syncLotInputs(force=false){
     lastAutoLotKey='';
   }
 }
+
 async function calculateLot(signal){
   const pair=el('lotPair').value,entry=Number(signal.entry),sl=Number(signal.sl);
   const balance=15000,usedMargin=0;
   const out=el('lotOutput');
-  if(!(entry>0)||!(sl>0)||entry===sl){
-    out.textContent='إشارة الدخول غير صالحة. ينتظر SweepLab تحديث الإشارة.';
-    return;
-  }
+  if(!(entry>0)||!(sl>0)||entry===sl){out.textContent='إشارة الدخول غير صالحة. ينتظر SweepLab تحديث الإشارة.';return;}
   out.textContent='إشارة ENTER ظهرت. يحسب اللوت تلقائياً...';
   try{
-    const r=await fetch('/api/lot-size',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pair,entry,sl,balance,usedMargin})});
+    const r=await fetchWithTimeout('/api/lot-size',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pair,entry,sl,balance,usedMargin})},10000);
     const j=await r.json();
-    if(!r.ok)throw new Error(j.error||'تعذر حساب اللوت');
     out.innerHTML='إشارة '+pair+' · الدخول '+fmt(entry,pair)+' · SL '+fmt(sl,pair)+'<br>مسافة الوقف '+j.stopPips.toFixed(1)+' نقطة<br><b>اللوت المقترح '+j.lots.toFixed(2)+' · خسارة SL المقدرة $'+j.estimatedLossUsd.toFixed(2)+'</b><br>استخدام المارجن المقدر '+j.marginUtilizationPct.toFixed(2)+'% من رصيد 15,000 دولار';
   }catch(e){out.textContent=e.message||'تعذر حساب اللوت';}
 }
-function chip(ok,label){
-  return '<span class="chip '+(ok?'ok':'')+'">'+label+'</span>';
-}
+
+function chip(ok,label){return '<span class="chip '+(ok?'ok':'')+'">'+label+'</span>';}
 
 function card(p){
   const ch=p.checks||{};
   const active=!!p.bestWindowActive;
+  const showLevels=(p.decision==='ENTER'||p.heldSignal)&&Number.isFinite(Number(p.entry))&&Number.isFinite(Number(p.sl))&&Number.isFinite(Number(p.tp));
+  const remaining=Math.max(0,Math.ceil((Number(p.signalExpiresAt||0)-Date.now())/60000));
   return '<div class="card">'+
     '<div class="row"><div class="pair">'+p.pair+'</div><div class="decision '+(p.decision||'WAIT')+'">'+(p.decision||'WAIT')+'</div></div>'+
-    '<div class="window '+(active?'active':'')+'">'+
-      '<div><div class="wlabel">'+(p.bestWindowLabel||'أفضل وقت للتداول')+'</div><div class="wtime">'+(p.bestWindowOman||'—')+' بتوقيت عُمان</div></div>'+
-      (active?'<span class="livebadge">الآن</span>':'')+
-    '</div>'+
+    '<div class="window '+(active?'active':'')+'"><div><div class="wlabel">'+(p.bestWindowLabel||'أفضل وقت للتداول')+'</div><div class="wtime">'+(p.bestWindowOman||'—')+' بتوقيت عُمان</div></div>'+(active?'<span class="livebadge">الآن</span>':'')+'</div>'+
     '<div class="kv">'+
       '<div class="k"><div class="lab">الاتجاه</div><div class="val">'+(p.bias||'—')+'</div></div>'+
       '<div class="k"><div class="lab">Model</div><div class="val">'+(p.model||'—')+'</div></div>'+
       '<div class="k"><div class="lab">السعر</div><div class="val">'+fmt(p.price,p.pair)+'</div></div>'+
       '<div class="k"><div class="lab">Asia H / L</div><div class="val">'+fmt(p.asiaHigh,p.pair)+' / '+fmt(p.asiaLow,p.pair)+'</div></div>'+
     '</div>'+
-    (p.decision==='ENTER'&&Number.isFinite(Number(p.entry))&&Number.isFinite(Number(p.sl))&&Number.isFinite(Number(p.tp))?
-      '<div class="trade-levels">'+
-        '<div><div class="lab">الدخول</div><div class="val">'+fmt(p.entry,p.pair)+'</div></div>'+
-        '<div><div class="lab">وقف الخسارة</div><div class="val">'+fmt(p.sl,p.pair)+'</div></div>'+
-        '<div><div class="lab">جني الربح</div><div class="val">'+fmt(p.tp,p.pair)+'</div></div>'+
-        '<div class="rr-note">نسبة العائد إلى المخاطرة 1:3 · الوقف خلف أقصى ذيل بعد السويب بهامش 2 pip. مستويات تقديرية وليست ضماناً.</div>'+
-      '</div>':'')+
-    '<div class="checks">'+
-      chip(ch.sweep,'Sweep')+
-      chip(ch.displacement,'Displacement')+
-      chip(ch.bos,'BoS')+
-      chip(ch.retrace,'Fib / Retrace')+
-      chip(ch.confluence,'FVG')+
-    '</div>'+
+    (showLevels?'<div class="trade-levels">'+
+      '<div><div class="lab">'+(p.heldSignal?'دخول آخر إشارة':'الدخول')+'</div><div class="val">'+fmt(p.entry,p.pair)+'</div></div>'+
+      '<div><div class="lab">وقف الخسارة</div><div class="val">'+fmt(p.sl,p.pair)+'</div></div>'+
+      '<div><div class="lab">جني الربح</div><div class="val">'+fmt(p.tp,p.pair)+'</div></div>'+
+      '<div class="rr-note">'+(p.heldSignal?'آخر إشارة محفوظة للمراجعة. المتبقي تقريباً '+remaining+' دقيقة.<br>':'')+'نسبة العائد إلى المخاطرة 1:3 · لا تدخل متأخراً إذا ابتعد السعر عن مستوى الدخول.</div></div>':'')+
+    '<div class="checks">'+chip(ch.sweep,'Sweep')+chip(ch.displacement,'Displacement')+chip(ch.bos,'BoS')+chip(ch.retrace,'Fib / Retrace')+chip(ch.confluence,'FVG')+'</div>'+
     '<div class="bar"><i style="width:'+(p.progress||0)+'%"></i></div>'+
-    '<div class="reason '+(p.apiError?'err':'')+'">'+(p.apiError||p.reason||'')+'</div>'+
-  '</div>';
-}
+    '<div class="reason '+(p.apiError?'err':'')+'">'+(p.apiError||p.reason||'')+'</div></div>';
+} // SWEEPLAB_STICKY_UI
 
-function fallbackPair(pair, info){
-  return {
-    pair,
-    decision:'WAIT',
-    bestWindowOman:info&&info.oman,
-    bestWindowLabel:info&&info.label,
-    bestWindowActive:info&&info.active,
-    reason:'بانتظار أول تحديث داخل نافذة التداول'
-  };
-}
+function fallbackPair(pair,info){return {pair,decision:'WAIT',bestWindowOman:info&&info.oman,bestWindowLabel:info&&info.label,bestWindowActive:info&&info.active,reason:'بانتظار أول تحديث داخل نافذة التداول'};}
+
+function renderPerformance(s){
+  const st=s.tradeStats||{};
+  el('statSent').textContent=st.sent||0;
+  el('statWins').textContent=st.wins||0;
+  el('statLosses').textContent=st.losses||0;
+  el('statOpen').textContent=st.open||0;
+  el('statRate').textContent=st.winRate==null?'—':st.winRate+'%';
+  el('statProfit').textContent='$'+Number(st.grossProfitUsd||0).toFixed(0);
+  el('statLossUsd').textContent='$'+Number(st.grossLossUsd||0).toFixed(0);
+  const net=Number(st.netUsd||0);
+  el('statNet').textContent=(net<0?'-$':'$')+Math.abs(net).toFixed(0);
+  const box=el('statNetBox');
+  box.classList.toggle('positive',net>0);
+  box.classList.toggle('negative',net<0);
+  const rows=(s.tradeHistory||[]).slice(0,10).map(t=>{
+    const label=t.status==='WIN'?'ربح +$420':t.status==='LOSS'?'خسارة -$140':t.status==='OPEN'?'مفتوحة':'غير محسومة';
+    return '<div class="trade-row"><b>'+t.pair+'</b><span>'+t.direction+'</span><span>'+t.rr+'</span><b class="'+t.status+'">'+label+'</b></div>';
+  }).join('');
+  el('tradeHistory').innerHTML=rows||'<div class="margin-help">ما توجد إشارات مسجلة بعد.</div>';
+} // SWEEPLAB_PERFORMANCE_UI
 
 async function getConfig(){
-  cfg=await fetch('/api/config',{cache:'no-store'}).then(r=>r.json());
+  cfg=await fetchWithTimeout('/api/config').then(r=>r.json());
   el('apiNotice').classList.toggle('show',!cfg.configured);
 }
 
 async function load(){
   try{
-    const s=await fetch('/api/status',{cache:'no-store'}).then(r=>r.json());
-    el('online').textContent='ONLINE';
+    const s=await fetchWithTimeout('/api/status',{},8000).then(r=>r.json());
+    el('online').textContent='ONLINE · '+new Date().toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     el('online').classList.remove('off');
-
     latestPairs=s.pairs||{};
     const pairs=(cfg&&cfg.pairs)||['EURJPY','GBPCHF','EURCAD'];
     const vals=pairs.map(pair=>{
       const existing=(s.pairs||{})[pair];
-      const win=(s.bestWindows||{})[pair] || (cfg&&cfg.pairWindows&&cfg.pairWindows[pair]);
-      if(existing){
-        return {
-          ...existing,
-          bestWindowOman:existing.bestWindowOman||existing.bestTimeOman||(win&&win.oman),
-          bestWindowLabel:existing.bestWindowLabel||(win&&win.label),
-          bestWindowActive:!!existing.activeNow
-        };
-      }
+      const win=(s.bestWindows||{})[pair]||(cfg&&cfg.pairWindows&&cfg.pairWindows[pair]);
+      if(existing)return {...existing,bestWindowOman:existing.bestWindowOman||existing.bestTimeOman||(win&&win.oman),bestWindowLabel:existing.bestWindowLabel||(win&&win.label),bestWindowActive:!!existing.activeNow};
       return fallbackPair(pair,win);
     });
-
     el('cards').innerHTML=vals.map(card).join('');
     syncLotInputs();
-
     const b=s.apiBudget||{};
     el('budget').textContent=(b.requestsToday??0)+' / '+(b.safeCap||450);
     el('lastScan').textContent=s.lastScan?new Date(s.lastScan).toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit'}):'—';
     el('monitorState').textContent=s.paused?(s.pauseReason||'متوقفة مؤقتاً'):'تعمل الآن';
+    renderPerformance(s);
   }catch(e){
     el('online').textContent='OFFLINE';
     el('online').classList.add('off');
@@ -244,91 +241,36 @@ async function load(){
 }
 
 async function scanNow(){
-  const btn=el('scanBtn');
-  btn.disabled=true;
-  btn.textContent='جاري التحديث...';
-  try{
-    await fetch('/api/scan',{method:'POST'});
-    await load();
-  }finally{
-    btn.disabled=false;
-    btn.textContent='تحديث التحليل';
-  }
+  const btn=el('scanBtn');btn.disabled=true;btn.textContent='جاري التحديث...';
+  try{await fetchWithTimeout('/api/scan',{method:'POST'},12000);await load();}
+  catch(e){el('monitorState').textContent='تعذر تحديث التحليل';}
+  finally{btn.disabled=false;btn.textContent='تحديث التحليل';}
 }
 
-function u8(b64){
-  const pad='='.repeat((4-b64.length%4)%4);
-  const s=atob((b64+pad).replace(/-/g,'+').replace(/_/g,'/'));
-  return Uint8Array.from([...s].map(c=>c.charCodeAt(0)));
-}
+function u8(b64){const pad='='.repeat((4-b64.length%4)%4);const s=atob((b64+pad).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...s].map(c=>c.charCodeAt(0)));}
 
 async function enablePush(){
-  if(!('serviceWorker' in navigator)||!('PushManager' in window)){
-    alert('الإشعارات غير مدعومة في هذا المتصفح');
-    return;
-  }
-  if(!cfg||!cfg.vapidPublicKey){
-    alert('إعداد الإشعارات غير مكتمل على السيرفر');
-    return;
-  }
-
-  const perm=await Notification.requestPermission();
-  if(perm!=='granted'){
-    alert('لم يتم السماح بالإشعارات');
-    return;
-  }
-
-  const reg=await navigator.serviceWorker.ready;
-  let sub=await reg.pushManager.getSubscription();
-  if(!sub){
-    sub=await reg.pushManager.subscribe({
-      userVisibleOnly:true,
-      applicationServerKey:u8(cfg.vapidPublicKey)
-    });
-  }
-
-  const r=await fetch('/api/push/subscribe',{
-    method:'POST',
-    headers:{'content-type':'application/json'},
-    body:JSON.stringify(sub)
-  });
-  const j=await r.json();
-  alert(j.ok?'تم تفعيل الإشعارات بنجاح':'تعذر تفعيل الإشعارات');
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){alert('الإشعارات غير مدعومة في هذا المتصفح');return;}
+  if(!cfg||!cfg.vapidPublicKey){alert('إعداد الإشعارات غير مكتمل على السيرفر');return;}
+  const perm=await Notification.requestPermission();if(perm!=='granted'){alert('لم يتم السماح بالإشعارات');return;}
+  const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(cfg.vapidPublicKey)});
+  const r=await fetchWithTimeout('/api/push/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(sub)},10000);const j=await r.json();alert(j.ok?'تم تفعيل الإشعارات بنجاح':'تعذر تفعيل الإشعارات');
 }
 
 async function testPush(){
-  if(!('serviceWorker' in navigator)||!('PushManager' in window)){
-    alert('الإشعارات غير مدعومة في هذا المتصفح');
-    return;
-  }
-  const reg=await navigator.serviceWorker.ready;
-  const sub=await reg.pushManager.getSubscription();
-  if(!sub){
-    alert('فعّل الإشعارات أولاً');
-    return;
-  }
-  const r=await fetch('/api/push/test',{
-    method:'POST',
-    headers:{'content-type':'application/json'},
-    body:JSON.stringify({endpoint:sub.endpoint})
-  });
-  const j=await r.json();
-  if(!r.ok){
-    alert(j.error||'تعذر إرسال الاختبار');
-    return;
-  }
-  alert(j.ok?'تم إرسال الإشعار التجريبي':'تعذر إرسال الإشعار');
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){alert('الإشعارات غير مدعومة في هذا المتصفح');return;}
+  const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();if(!sub){alert('فعّل الإشعارات أولاً');return;}
+  const r=await fetchWithTimeout('/api/push/test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({endpoint:sub.endpoint})},10000);const j=await r.json();alert(j.ok?'تم إرسال الإشعار التجريبي':(j.error||'تعذر إرسال الإشعار'));
 }
 
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
-}
-
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
 
 (async()=>{
-  await getConfig();
-  await load();
-  setInterval(load,60000);
+  try{await getConfig();await load();}catch(e){el('online').textContent='OFFLINE';el('online').classList.add('off');el('monitorState').textContent='تعذر تحميل البيانات';}
+  setInterval(load,30000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
+  window.addEventListener('online',load);
 })();
 </script>
 </body>
