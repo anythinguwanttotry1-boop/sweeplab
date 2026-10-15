@@ -109,6 +109,7 @@ function refreshMeta() {`;
     connected: mt5ConnectedPairs.length > 0,
     lastQuoteAt: Math.max(0, ...Object.values(mt5Quotes).map(q => Number(q?.at || 0)))
   };
+  state.marketDataSource = 'MT5 ONLY';
   const active = Object.keys(PAIRS).filter(p => pairActive(p));`,
     'bridge state in status'
   );
@@ -116,8 +117,8 @@ function refreshMeta() {`;
   server = replaceOnce(
     server,
     "    const data = await fetchPair(pair);",
-    "    const data = mt5BarsFresh(pair) ? mt5Bars[pair].bars : await fetchPair(pair);",
-    'prefer MT5 candles'
+    "    const data = mt5BarsFresh(pair) ? mt5Bars[pair].bars : []; // MT5 ONLY: never fall back to Twelve Data for chart candles",
+    'MT5-only candles'
   );
 
   server = replaceOnce(
@@ -125,23 +126,20 @@ function refreshMeta() {`;
     "    const result = analyze(pair, data);",
     `    const result = analyze(pair, data);
 
-    // Never send a new ENTER from a fallback/stale price when MT5 bridge is configured.
-    // A valid signal must have BOTH fresh MT5 bars and a fresh executable MT5 quote.
-    if (result && result.decision === 'ENTER' && MT5_BRIDGE_TOKEN) {
+    if (MT5_BRIDGE_TOKEN) {
       const q = mt5Quotes[pair];
       const liveReady = mt5QuoteFresh(pair) && mt5BarsFresh(pair);
       if (!liveReady) {
         result.decision = 'WAIT';
-        result.reason = 'Waiting for fresh MT5 quote + candles before sending ENTER';
+        result.reason = 'Waiting for fresh MT5 chart data';
+        result.priceSource = 'MT5';
+        if (q && Number.isFinite(Number(q.bid))) result.price = Number(q.bid);
         delete result.entry; delete result.sl; delete result.tp;
-      } else {
+      } else if (result.decision === 'ENTER') {
         const liveEntry = result.bias === 'BUY' ? Number(q.ask) : Number(q.bid);
         const modelEntry = Number(result.entry);
         const pip = pair.includes('JPY') ? 0.01 : 0.0001;
         const allowedDrift = Math.max(pip * 2, Number(q.spread || 0) * 2);
-
-        // If the model candle price and the actual broker quote disagree materially,
-        // do not alert. This prevents entries at prices the user's MT5 chart never reached.
         if (!Number.isFinite(liveEntry) || !Number.isFinite(modelEntry) || Math.abs(liveEntry - modelEntry) > allowedDrift) {
           result.decision = 'WAIT';
           result.reason = 'MT5 live price does not match setup entry yet — waiting';
@@ -161,12 +159,16 @@ function refreshMeta() {`;
             result.tp = result.bias === 'BUY' ? liveEntry + risk * 3 : liveEntry - risk * 3;
             result.rr = '1:3';
             result.entrySource = 'MT5 LIVE';
-            result.reason = 'Setup complete — entry confirmed against live MT5 quote';
+            result.priceSource = 'MT5';
+            result.reason = 'Setup complete — MT5-only entry confirmed';
           }
         }
+      } else {
+        result.priceSource = 'MT5';
+        result.price = Number(q.bid);
       }
     } // SWEEPLAB_MT5_LIVE_ENTRY_GATE`,
-    'gate ENTER on live MT5 price'
+    'gate all chart decisions on MT5 data'
   );
 
   server = replaceOnce(
@@ -200,7 +202,7 @@ function refreshMeta() {`;
 let html = fs.readFileSync('public/index.html', 'utf8');
 if (!html.includes('SWEEPLAB_MT5_UI')) {
   const oldHeartbeat = "el('online').textContent='ONLINE · '+new Date().toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit',second:'2-digit'});";
-  const newHeartbeat = "el('online').textContent='ONLINE · '+new Date().toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+((s.mt5Bridge&&s.mt5Bridge.connectedPairs&&s.mt5Bridge.connectedPairs.length)?' · MT5 LIVE':' · TWELVE'); // SWEEPLAB_MT5_UI";
+  const newHeartbeat = "el('online').textContent='ONLINE · '+new Date().toLocaleTimeString('ar-OM',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+((s.mt5Bridge&&s.mt5Bridge.connectedPairs&&s.mt5Bridge.connectedPairs.length)?' · MT5 LIVE':' · MT5 OFFLINE'); // SWEEPLAB_MT5_UI";
   if (html.includes(oldHeartbeat)) html = html.replace(oldHeartbeat, newHeartbeat);
   fs.writeFileSync('public/index.html', html);
 }
