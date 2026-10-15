@@ -122,6 +122,55 @@ function refreshMeta() {`;
 
   server = replaceOnce(
     server,
+    "    const result = analyze(pair, data);",
+    `    const result = analyze(pair, data);
+
+    // Never send a new ENTER from a fallback/stale price when MT5 bridge is configured.
+    // A valid signal must have BOTH fresh MT5 bars and a fresh executable MT5 quote.
+    if (result && result.decision === 'ENTER' && MT5_BRIDGE_TOKEN) {
+      const q = mt5Quotes[pair];
+      const liveReady = mt5QuoteFresh(pair) && mt5BarsFresh(pair);
+      if (!liveReady) {
+        result.decision = 'WAIT';
+        result.reason = 'Waiting for fresh MT5 quote + candles before sending ENTER';
+        delete result.entry; delete result.sl; delete result.tp;
+      } else {
+        const liveEntry = result.bias === 'BUY' ? Number(q.ask) : Number(q.bid);
+        const modelEntry = Number(result.entry);
+        const pip = pair.includes('JPY') ? 0.01 : 0.0001;
+        const allowedDrift = Math.max(pip * 2, Number(q.spread || 0) * 2);
+
+        // If the model candle price and the actual broker quote disagree materially,
+        // do not alert. This prevents entries at prices the user's MT5 chart never reached.
+        if (!Number.isFinite(liveEntry) || !Number.isFinite(modelEntry) || Math.abs(liveEntry - modelEntry) > allowedDrift) {
+          result.decision = 'WAIT';
+          result.reason = 'MT5 live price does not match setup entry yet — waiting';
+          delete result.entry; delete result.sl; delete result.tp;
+        } else {
+          const sl = Number(result.sl);
+          const risk = Math.abs(liveEntry - sl);
+          const validRisk = Number.isFinite(sl) && Number.isFinite(risk) && risk > 0 &&
+            (result.bias === 'BUY' ? sl < liveEntry : sl > liveEntry);
+          if (!validRisk) {
+            result.decision = 'WAIT';
+            result.reason = 'Invalid MT5 live entry/SL relationship — waiting';
+            delete result.entry; delete result.sl; delete result.tp;
+          } else {
+            result.entry = liveEntry;
+            result.price = liveEntry;
+            result.tp = result.bias === 'BUY' ? liveEntry + risk * 3 : liveEntry - risk * 3;
+            result.rr = '1:3';
+            result.entrySource = 'MT5 LIVE';
+            result.reason = 'Setup complete — entry confirmed against live MT5 quote';
+          }
+        }
+      }
+    } // SWEEPLAB_MT5_LIVE_ENTRY_GATE`,
+    'gate ENTER on live MT5 price'
+  );
+
+  server = replaceOnce(
+    server,
     "    if (req.method === 'GET' && u.pathname === '/health') {",
     `    if (req.method === 'POST' && u.pathname === '/api/mt5/push') {
       if (!MT5_BRIDGE_TOKEN) return sendJson(res, 503, { ok: false, error: 'MT5 bridge not configured' });
