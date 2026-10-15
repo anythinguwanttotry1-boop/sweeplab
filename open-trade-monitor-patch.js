@@ -42,4 +42,4 @@ if (!server.includes('SWEEPLAB_OPEN_TRADE_MONITOR')) {
   fs.writeFileSync('server.js', server);
 }
 
-require('./server.js');
+require('./mt5-bridge-patch.js');
