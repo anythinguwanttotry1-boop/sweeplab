@@ -56,4 +56,13 @@ if (!stats.includes("require('./open-trade-monitor-patch.js');")) {
   fs.writeFileSync(statsFile, stats);
 }
 
+// Route the final strategy patch through OANDA. The wrapper keeps the old MT5
+// endpoint available, but OANDA becomes the only feed used for chart analysis.
+const rrFile = 'rr-realism-patch.js';
+let rr = fs.readFileSync(rrFile, 'utf8');
+if (!rr.includes("require('./oanda-entry-patch.js');")) {
+  rr = rr.replace("require('./mt5-bridge-patch.js');", "require('./oanda-entry-patch.js');");
+  fs.writeFileSync(rrFile, rr);
+}
+
 require('./stability-patch.js');
